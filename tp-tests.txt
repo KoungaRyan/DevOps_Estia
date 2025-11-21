@@ -1,0 +1,5 @@
+# Run unit tests with coverage
+go test ./... -cover
+
+# Run API tests
+go test ./test/apitests -v
