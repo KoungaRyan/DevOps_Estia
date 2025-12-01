@@ -1,27 +1,10 @@
-# Étape 1 : Build
-FROM golang:1.25-alpine AS builder
-
+FROM golang:1.25 AS build
 WORKDIR /app
-
-# Copier le code source
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
+RUN go build -o server
 
-# Compiler le binaire
-RUN go build -o app .
-
-# Étape 2 : Image finale
-FROM alpine:3.18
-
+FROM debian:bookworm-slim
 WORKDIR /app
-
-# Copier uniquement le binaire depuis le builder
-COPY --from=builder /app/app .
-
-# Exposer un port (OPTIONNEL)
+COPY --from=build /app/server .
 EXPOSE 8080
-
-# Lancer le binaire (PAS le fichier main.go)
-ENTRYPOINT ["./app"]
+CMD ["./server"]
