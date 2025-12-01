@@ -21,14 +21,36 @@ func newApp() http.Handler {
 	Logger.Info("Init the backend")
 
 	router := http.NewServeMux()
-	router.HandleFunc("GET /{$}", getHomeHandler)
-	router.HandleFunc("POST /api/cats", makeHandlerFunc(createCat))
-	router.HandleFunc("GET /api/cats", makeHandlerFunc(listCats))
-	router.HandleFunc("GET /api/cats/{catId}", makeHandlerFunc(getCat))
-	//router.HandleFunc("DELETE /api/cats/{catId}", makeHandlerFunc(deleteCat))
+	// Root
+	router.HandleFunc("/", getHomeHandler)
+
+	// Collection endpoints
+	router.HandleFunc("/api/cats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			makeHandlerFunc(createCat).ServeHTTP(w, r)
+			return
+		}
+		if r.Method == http.MethodGet {
+			makeHandlerFunc(listCats).ServeHTTP(w, r)
+			return
+		}
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	})
+
+	// Item endpoints (GET, DELETE)
+	router.HandleFunc("/api/cats/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			makeHandlerFunc(getCat).ServeHTTP(w, r)
+		case http.MethodDelete:
+			makeHandlerFunc(deleteCat).ServeHTTP(w, r)
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	fsys, _ := fs.Sub(content, "swagger-ui")
-	router.Handle("GET /swagger/", http.StripPrefix("/swagger", http.FileServer(http.FS(fsys))))
+	router.Handle("/swagger/", http.StripPrefix("/swagger", http.FileServer(http.FS(fsys))))
 
 	return logReq(router)
 }
